@@ -1,214 +1,94 @@
 ---
 name: harness-run
-description: Persistent docs-backed harness for long Codex coding tasks that need goal-only autonomous execution, inferred planning/verification, unattended improve-verify-resume loops, durable state, run-local collaboration records, background relaunch, status/stop control, or scoped multi-agent side work. Use only for explicit long-running, overnight, resumable, or autonomous execution requests, not for ordinary one-shot help or casual Q&A.
+description: 检查并按需初始化项目基础文档与模板，将软件目标转为模块路线，自主实现、建立测试、执行真实操作验收并持续完善。用于调用 harness-run 初始化或接手项目、按目标自主开发和长期推进，配合宿主原生 goal。仅讨论或评审本 skill 时不启动项目执行。
 license: MIT
 metadata:
   author: hopesy
-  version: "1.0.0"
+  version: "2.0.0"
 ---
 
 # Harness Run
 
-Use this skill for long-running work that must survive fresh contexts, background relaunches, or planned handoffs. Do not use it for one-shot Q&A.
+用户描述想要的软件或改进结果，Agent 先检查并按需补齐项目基础，再自主承担规划、实现、验证和后续推进。持续运行交给宿主，工程决策以用户目标、模块依赖和真实证据为依据。
 
-## When To Use
+## 接受目标并接手项目
 
-- Unattended improve-verify loops
-- Overnight debugging, fixing, auditing, or shipping work
-- Resume from durable state after a fresh Codex session
-- Background runs that should relaunch fresh `codex exec` sessions
-- Scoped multi-agent inspection, verification, or review
+- 读取适用仓库指令、用户指定计划、现有架构、源码和测试，判断项目是从零建设、局部改进还是整体演进。
+- 用户只需给目标。自行推导技术方案、实施顺序、测试与合理验收标准，简要说明重要假设后继续；只询问无法推断且会实质改变产品方向的选择。
+- 用户指定计划、兼容性要求和非目标是执行依据。允许根据证据调整实现方法，不为通过验收而缩减目标。
+- 已有原生 goal 时沿用；需要设置或管理目标时读 [native-runtime.md](references/native-runtime.md)。遵守宿主的授权与预算规则，不启动第二套循环控制器或嵌套 CLI。
+- 恢复任务先核对当前代码和已有记录，不重新规划已经明确的工作。
 
-## What This Skill Owns
+## 先检查基础，再按需补齐
 
-- Persistent run control through `scripts/harness_run_ctl.py`
-- Durable state under `.harness-run/`
-- Run-local collaboration docs under `.harness-run/docs/`
-- Per-round evidence, generated knowledge, and design notes under `.harness-run/evidence/`, `.harness-run/generated/`, and `.harness-run/design/`
-- Foreground and background parity
-- Resume, status, stop, and handoff behavior
-- One-round-at-a-time improve-verify loops
+每次调用先检查现有指令、README、架构、当前计划及所需模板是否可用；同一执行过程不逐轮重复检查。不能只按文件名判断，既有等价文档可以直接沿用。
 
-## User Entry
+发现缺口时读 [project-setup.md](references/project-setup.md)，再按需读取其中指向的具体模板。新项目按基础模板建立骨架；已有项目只补必要缺项、修复过期内容，保留自定义规则与文件，不强行重排目录或覆盖现有文档。
 
-- `run-task`: start a durable run with one natural-language goal; `--verify` is optional
-- `status`: inspect the current run in human-readable form
-- `stop`: stop the current run cleanly
+初始化只建立支持实施的基础。用户给了软件目标时，补齐后立即推进可运行切片；用户明确只要初始化时，完成初始化范围即可。不要新增初始化报告、状态 JSON 或另一套 `.harness-run/` 记录。
 
-Normal users should not have to operate internal commands or design a full launch contract. When this skill triggers, accept a goal-only request, infer the plan, scope, metric, and verification approach from project evidence, run the helper script yourself, and report the durable state paths plus the current status. Only mention internal commands when debugging or when a fresh Codex session must reconstruct the runtime prompt manually.
+## 把愿望转为可交付目标
 
-Every run initializes a mini collaboration record under `.harness-run/docs/`. This record is the run-local equivalent of a project docs system: architecture snapshot, run plan, constraints, validation pipeline, progress, decisions, handoff, completion, and sync policy. If the target repo has its own `docs/`, keep `.harness-run/docs/` as the execution layer and sync only concise summaries when the run's `sync-policy.md` allows it.
+先建立足够指导实施的产品理解，随后立即推进：
 
-## Launch Contract
+1. 明确谁在什么场景下使用程序、应完成哪些关键操作、输入和输出是什么，以及需要保持的约束。
+2. 从这些用户路径推导必要能力、模块职责与依赖，形成可执行的里程碑和验收条件。已有可靠架构就沿用；新设计与已实现事实分开标明。
+3. 跑通项目当前的构建、启动和相关验证基线；新项目先建立最小可运行路径，已有项目识别阻断使用的问题。
+4. 将实现缺口、行为缺陷和关键验证缺口纳入同一进度清单，注明下一项可执行工作。
 
-Only `Goal` is required from the user. Infer these fields before starting:
+对于“把这个程序完善到可用”这类宽目标，依据项目用途和关键用户路径推导本阶段的可用标准，并说明假设。用户不必提供完整规格，但模型必须能说明怎样证明本阶段已经达成。
 
-- `Goal`
-- `Scope`
-- `Metric`
-- `Direction`
-- `Verify`
+## 有方向地推进各个模块
 
-Optional fields:
+维护两层反馈：项目层决定下一步值得做什么；实施层负责把选中的工作实现并验证。
 
-- `Guard`
-- `Iterations`
-- `Stop condition`
-- `Run mode`
-- `Execution policy`
+- 每项工作必须对应原始目标、里程碑验收缺口，或阻碍这些目标的已证实问题。说不清关联的优化、重构和功能放入可选建议，不占用主线。
+- 按用户价值、依赖关系、风险与不确定性排序。优先解除关键阻塞、打通主要用户路径，随后补齐该目标要求的可靠性、兼容性和质量。
+- 以可运行、可验收的功能切片推进，必要时跨模块协作；避免先堆出所有目录和空接口，再宣称模块完成。
+- 对正在推进的模块明确职责、接口、上下游依赖和验收方式。模块局部通过后，还要检查与其他模块连接起来是否完成用户路径。
+- 完成一个里程碑、发现重要新事实或当前方案停滞时，重评剩余清单和顺序。日常小修改不需要重新制定整体路线。
+- 工具调用次数、提交数量、测试数量、覆盖率和文档更新都不能独立代表项目进展。
 
-If a field can be inferred safely, infer it. If scope is unclear, default to the current repo or current working directory and narrow it after reading evidence. If verification is unclear, do not block launch; use plan/checklist completion with concrete evidence. Ask only when continuing would likely produce work opposite to the user's intent.
+## 实施—验证—修正循环
 
-If the user explicitly says to follow a directory, plan file, roadmap, issue list, checklist, or existing project plan, treat that plan as authoritative scope and sequence. Read it, follow it, and do not renegotiate the plan unless it contradicts safety, repo instructions, or executable evidence.
+每个有意义的切片：
 
-Default execution policy is `workspace_write`. Do not use `danger_full_access` unless the user explicitly requests or accepts that elevated background risk; that mode injects Codex's dangerous bypass argument into nested `codex exec` sessions.
+1. 根据当前计划和已有上下文选择具体问题或可验证假设；仅在恢复上下文或信息变化时重读相关文件，不每轮全量扫描项目文档。
+2. 实现改动，或先建立能暴露问题的检查；必要时修复相关构建、运行和测试设施。
+3. 运行受影响的检查及适当回归；涉及用户交互时执行真实操作验收。
+4. 根据结果修复、保留或撤回本次改动，随后推进目标内剩余的最高价值缺口。撤回只针对本轮可明确归属的改动，保留用户与其他执行者的工作。
 
-Default stop behavior:
+在授权范围内持续实施，不在写完计划、搭完测试框架或一个子任务完成后停下来要求“继续”。相同尝试多次没有新增证据或改善时，换诊断方法、缩小复现或调查依赖，不机械重跑。
 
-- when `direction=pass`, the run stops once verification passes
-- when `direction=complete`, the run stops once the recorded metric reaches completion
-- when `verify` is provided and `metric` is omitted, the verify command itself is used as the tracked metric label
-- when `verify` is omitted, use `metric=planned work checklist`, `direction=complete`, `stop_condition=complete`, and record `complete` only after the inferred or user-specified plan is satisfied with evidence
-- background runs default to an iteration cap of 25 when no explicit cap is provided
+当独立检查确有价值且宿主允许委派时，可用子代理做有边界的探索、验收或评审；吸收有效发现，不把多代理作为固定前置步骤。
 
-## Quick Start
+## 自主建立测试与真实验收
 
-Background:
+开始设计验证或准备验收时读 [verification.md](references/verification.md)。
 
-1. Start with `run-task`.
-2. Use `status` to inspect the runtime and `stop` to end it.
-3. If the process stops on `needs_human`, read `.harness-run/runtime.log`, `.harness-run/state.json`, and `.harness-run/rounds.tsv` before continuing.
-4. Read `.harness-run/docs/handoff.md`, `.harness-run/docs/run-plan.md`, and `.harness-run/docs/constraints.md` before resuming work.
+- 复用现有测试体系；缺少测试时，从关键行为和可复现缺陷建立必要检查，边实现边补齐，不把测试方案推回给用户。
+- 预期结果来自需求、契约、可信样例或独立计算。不能复制当前实现作为正确答案，也不能靠删除测试、放宽断言或跳过失败项来达标。
+- 对界面、浏览器、桌面插件或可视化目标，启动包含本次改动的真实程序，用可用 Computer Use、浏览器或领域工具操作关键路径，检查可见结果、持久化数据和必要日志。
+- 将反复有用的检查沉淀为项目测试或验证脚本；一次性检查不必建设成框架。测试设施应直接帮助当前目标，不能无限扩建。
+- 必要工具或环境缺失时，推进其他可行工作并标明验证缺口；编译通过、mock 通过或截图存在不能替代尚未执行的真实验收。
 
-Foreground:
+## 保留必要文档，减少维护负担
 
-1. `run-task --foreground` prepares the durable run in the current Codex session.
-2. Read the repo `AGENTS.md`, current source, build/test config, and recent logs.
-3. Measure the baseline.
-4. Initialize state after the baseline exists.
-5. Run one focused change, verify with the command or evidence checklist, and record the result.
-6. Update `.harness-run/docs/handoff.md` every round; update progress, decisions, constraints, and architecture only when facts change.
-7. Repeat from persisted state.
+保留基本进度清单和系统架构，优先沿用项目现有文件；需要建立或接续记录时读 [conventions.md](references/conventions.md)。
 
-Common commands:
+进度直接维护在当前执行计划中，承载目标、里程碑状态、验收入口和下一步；架构说明承载模块职责、接口和数据流。简单项目可在已有文件内简述，已有合理的文档划分不强行合并。
 
-```bash
-python <skill-root>/scripts/harness_run_ctl.py run-task --goal "<goal>"
-python <skill-root>/scripts/harness_run_ctl.py run-task --foreground --goal "<goal>"
-python <skill-root>/scripts/harness_run_ctl.py run-task --goal "<goal>" --verify "<command>"
-python <skill-root>/scripts/harness_run_ctl.py run-task --foreground --goal "<goal>" --verify "<command>"
-python <skill-root>/scripts/harness_run_ctl.py status
-python <skill-root>/scripts/harness_run_ctl.py stop
-```
+只在里程碑完成、方向或约束变化、重要阻塞、交接或交付时更新进度；只在结构事实改变时更新架构。当前会话中的普通尝试无需逐轮写日志，不反复重写整套文档或复制测试报告。同一任务沿用一份计划和一份变更历史，history 在交付或必要的阶段留档时汇总；指南与模板保持稳定。保留关键证据位置即可。
 
-## Durable State
+## 收敛、阻塞与交付
 
-All normal run artifacts live under:
+完成前对照原始目标检查：
 
-```text
-<workspace_root>/.harness-run/
-```
+- 必需的模块及它们组成的用户路径已实现，约束与兼容要求有证据支持。
+- 最终代码版本通过所需检查，受最后改动影响的验证已经刷新。
+- 必需的真实操作验收已执行，结果与预期一致。
+- 最终变更、未解决问题和未验证项已经审阅，没有影响目标完成的缺口。
 
-Files:
+一个模块或一个阶段完成不等于整个目标完成。用户要求持续演进时，在允许的预算和时间内继续推进目标内未解决清单；不擅自扩大产品方向，也不靠无价值工作延长运行。
 
-- `launch.json`: confirmed launch manifest
-- `state.json`: primary recovery snapshot
-- `rounds.tsv`: append-only audit trail
-- `runtime.json`: background controller pid, status, and last decision
-- `runtime.log`: controller and nested Codex output
-- `context.json`: canonical path map for the active run
-- `docs/`: run-local collaboration docs and handoff records
-- `evidence/`: concise per-round evidence notes
-- `generated/`: generated knowledge snapshots with source commands
-- `design/`: design notes too large for the decision log
-
-Each managed git repo may also get a git-local pointer at:
-
-```bash
-git rev-parse --git-path harness-run/pointer.json
-```
-
-That pointer resolves back to the workspace-owned `context.json`.
-
-The run-local docs are initialized from templates in `references/templates/`. They are not a replacement for target repo docs. They are the durable execution record that lets fresh Codex sessions continue without hidden conversation state.
-
-Core run docs:
-
-- `project-architecture.md`
-- `product-context.md`
-- `run-plan.md`
-- `constraints.md`
-- `change-inventory.md`
-- `validation-pipeline.md`
-- `operability.md`
-- `security-boundary.md`
-- `sync-policy.md`
-- `progress.md`
-- `decisions.md`
-- `handoff.md`
-- `completion.md`
-
-## Round Rules
-
-- Rebuild context from source files, logs, tests, and durable state.
-- Read `.harness-run/docs/constraints.md`, `run-plan.md`, `project-architecture.md`, `validation-pipeline.md`, and `handoff.md` before editing.
-- Establish or refresh the baseline before mutating anything.
-- If verification is unclear, create or infer an execution checklist and evidence checklist before editing.
-- Make one focused change or one falsifiable diagnosis.
-- Verify mechanically when a command exists; otherwise verify by concrete evidence such as file inventory, diff review, build feasibility, sample output, screenshots, generated reports, or checklist completion.
-- Keep, discard, block, or mark no-op.
-- Record exactly one outcome before the next round.
-- For partial goal-only rounds, use `refine`, `search`, or `pivot` with `metric=incomplete`; do not use `keep` until the metric is actually `complete`.
-- Update `handoff.md` every round. Update at least one progress/evidence artifact each recorded round: `progress.md`, `decisions.md`, `change-inventory.md`, `run-plan.md`, `completion.md`, or `.harness-run/evidence/round-XXXX.md`.
-- Keep raw logs and secrets out of Markdown docs; summarize only redacted facts.
-- Never leave the next round dependent on hidden conversation state.
-
-## Internal Control Plane
-
-The skill keeps the heavier runtime protocol in `references/runtime-loop.md` and the helper script.
-
-- `run-task` is the user entry. It creates or resumes the durable run and starts the background controller by default.
-- `create-launch`, `launch`, `start`, `controller`, `init-state`, `record`, and `resume-prompt` are internal or advanced commands.
-- The controller loop survives Codex context limits by relaunching fresh `codex exec` sessions from `.harness-run/`.
-- `needs_human` means the controller stopped on a real blocker, inconsistent state, missing run artifacts, stale controller process, or stagnation, not that the user should keep waiting.
-
-Typical flow:
-
-1. Use `run-task`.
-2. Check `status` if you need a progress summary.
-3. Use `stop` when you want to end the run. For a prepared foreground run, `stop` clears the prepared state even when no background controller exists.
-4. If a fresh Codex session must continue manually, use the internal `resume-prompt` command or read `.harness-run/state.json`.
-
-Repeated starts:
-
-- running `run-task` again with the same goal, scope, and verify command reuses the existing run
-- running goal-only again with the same goal and scope reuses the existing plan/checklist run
-- running it with a different behavior contract stops with `needs_human` instead of mixing state; contract comparison includes goal, scope, verify, metric, direction, guard, iterations, stop condition, execution policy, and codex args
-- advanced fresh starts can pass `--force`, which archives existing `.harness-run` files before creating the new run
-- `--force` refuses to archive while a background controller is still active; run `stop` first
-
-## Multi-Agent Mode
-
-- Delegate only independent side work.
-- Use one agent for bounded source inspection, one for log or test verification, or one for review when those paths do not overlap.
-- Do not duplicate the same investigation in multiple agents.
-- Merge useful findings into durable state before the next round.
-
-## Resume Discipline
-
-- Resume from `.harness-run/state.json`, `.harness-run/rounds.tsv`, and `.harness-run/launch.json`, not from conversation memory.
-- Re-read the state file, latest rounds, latest logs, `docs/handoff.md`, `docs/run-plan.md`, `docs/constraints.md`, and `docs/project-architecture.md` before changing anything.
-- If evidence is missing, collect it first.
-- If the harness state is inconsistent, stop as `needs_human` rather than inventing a recovery path.
-
-## Boundary
-
-`harness-run` makes runs resumable and can keep relaunching Codex while the Python controller and machine stay alive. It does not auto-restart after reboot, logout, or process termination. That is acceptable for this skill: after a reboot, manually start a fresh Codex session, read `.harness-run/state.json`, `.harness-run/rounds.tsv`, and `.harness-run/launch.json`, then continue with `run-task` using the same goal. It also does not prove semantic task completion by itself; completion still requires `run-plan.md`, `completion.md`, verification output, and evidence artifacts to support the final `complete` metric.
-
-## References
-
-- [references/runtime-loop.md](references/runtime-loop.md): launch contract, state files, round protocol, supervisor decisions, and prompt template
-- [references/collaboration-protocol.md](references/collaboration-protocol.md): run-local collaboration discipline and update cadence
-- [references/run-docs-protocol.md](references/run-docs-protocol.md): `.harness-run/docs/` file roles and sync boundaries
-- [references/recovery-runbook.md](references/recovery-runbook.md): `needs_human`, stale runtime, and recovery rules
-- [references/persistence-and-redaction.md](references/persistence-and-redaction.md): local-only files, redaction, and repo-sync safety
+达到约定目标后交付结果、关键验证和剩余限制。遇到用户停止、预算耗尽或真实外部阻塞时，按宿主规则结束或等待，并保留精简接手信息，不写成完成。skill 本身不保证关机、断网或宿主退出后自动继续。

@@ -1,7 +1,7 @@
 interface:
   display_name: "Harness Run"
-  short_description: "Goal-only persistent Codex loops with run-local docs and resume control"
-  default_prompt: "Use $harness-run to start a durable long-running loop: say the goal, optionally add a verify command or plan path, and let it initialize .harness-run/docs/ for architecture, plan, constraints, handoff, and completion records. Then use run-task, status, or stop as needed."
+  short_description: "Prepare projects, implement goals, test, and verify real usage"
+  default_prompt: "Use $harness-run to check and fill missing project foundations, turn my goal into a module plan, implement and verify real user flows, and keep progressing with minimal document upkeep."
 
 policy:
   allow_implicit_invocation: false

@@ -1,268 +1,74 @@
-# harness-run 使用说明
+# harness-run
 
-`harness-run` 用于长时间、可恢复、可持续推进的 Codex 任务。用户不需要设计完整参数，只需要说清楚目标；范围、执行计划、验证方式和停止条件由 Codex 根据项目证据推断。
+用户描述软件愿望，Agent 先检查并按需补齐项目基础，再将它转为产品目标、模块架构和实施路线，按依赖与用户价值推进实现，自主建立测试、执行真实操作验收，再根据结果持续改进。
 
-## 最简单用法
+适用于 Codex、Claude Code 等支持 skills 的编程 Agent。长时间执行优先使用宿主原生的 `/goal`；本 skill 提供项目执行与验收协议。
 
-在 Codex 里直接说：
+## 用法
 
-```text
-使用 $harness-run 持续执行：
-目标：将这个项目翻译成另一种语言
-```
-
-Codex 应该自己完成这些动作：
-
-- 读取当前仓库、`AGENTS.md`、README、源码结构、构建配置和已有计划
-- 推导执行范围、阶段计划、验证方式和证据清单
-- 启动持久化运行
-- 初始化 `.harness-run/docs/` 下的架构快照、运行计划、约束、验证、进度、决策和交接文档
-- 每轮只做一个可验证切片
-- 将进展写入 `.harness-run/`
-- 遇到真实 blocker 时停为 `needs_human`
-
-## 指定项目目录
-
-如果当前 Codex 不在目标项目目录，可以直接写：
+在支持 `/goal` 的宿主中输入目标，并要求使用已经安装的 harness-run。例如：
 
 ```text
-使用 $harness-run 在 C:\Users\zhouh\Desktop\CodexPotter 持续执行：
-目标：修复 resume 模式和 fresh interactive session 的 live iteration 行为不一致问题
+/goal 使用 harness-run 持续完善当前程序：
+让用户可以可靠地导入数据、编辑并保存、导出后重新打开。
+自主制定和执行计划，建立必要的测试体系，
+使用可用的 Computer Use 或浏览器工具验收关键流程，
+根据失败持续修正，直到目标有证据支持。
 ```
 
-等价手动命令：
-
-```powershell
-python <skill-root>\scripts\harness_run_ctl.py run-task --repo C:\Users\<you>\Desktop\CodexPotter --goal "修复 resume 模式和 fresh interactive session 的 live iteration 行为不一致问题"
-```
-
-## 验证命令可选
-
-多数任务没有一开始就清晰的验证条件，例如“把项目翻译成另一种语言”“迁移架构”“按计划完成重构”。这种情况下只给目标即可：
+也可以给已有计划：
 
 ```text
-使用 $harness-run 持续执行：
-目标：将当前项目从 Python 翻译成 Rust
+使用 harness-run 按 docs/plans/migration.md 持续实施迁移。
+自主补齐测试与验收，保持文件格式和公开 API 兼容。
 ```
 
-没有 `verify` 时，`harness-run` 会自动使用：
+Codex 可显式使用 `$harness-run`。其他宿主使用其当前支持的 skill 调用方式。是否启用原生 goal、是否允许自动续跑以及预算设置，取决于宿主能力和用户授权。
 
-- `metric`: `planned work checklist`
-- `direction`: `complete`
-- `stop_condition`: `complete`
-- `verify`: `manual evidence and completion checklist`
-- `iterations`: 后台模式默认最多 25 轮，避免形式化记录但没有实质进展的空转
+用户不必预先写完技术方案、测试清单或验证命令。Agent 会从项目中推导并记录重要假设；只有无法推断且会改变目标方向的选择才需要用户补充。
 
-含义是：Codex 必须先推导或读取执行计划，再用具体证据证明计划完成。partial 轮次必须用 `refine` / `search` / `pivot` 记录 `incomplete`，只有计划全部满足并写入 completion evidence 时，才能用 `keep` 记录 `complete`。
+## 它应当怎样工作
 
-如果验证命令很明确，可以补上：
+1. 检查项目基础：新项目按基础模板建立骨架，已有项目复用文档，仅补缺项；然后运行基线，建立模块职责、依赖和可验收的里程碑。
+2. 补齐关键测试和必要的验证设施。
+3. 选取一个实施切片，修改程序并验证。
+4. 对用户交互目标，启动真实程序，用 Computer Use、浏览器或应用控制工具操作并检查结果。
+5. 根据结果修正，在重要检查点调整进度清单，再推进目标内最高价值的剩余工作。
+6. 最终核对原始目标、回归结果和实际行为，交付或说明真实阻塞。
 
-```text
-使用 $harness-run 持续执行：
-目标：修复 TUI snapshot 测试失败
-验证命令：cargo test -p codex-tui
-```
+自动化测试与真实操作验收互相补充。例如“导出成功”既要检查生成文件内容，也要通过程序实际执行导出，并在目标应用中重新打开。截图应说明观察到了什么，不能单独证明流程成功。
 
-等价手动命令：
+工具不可用时，Agent 会继续可行工作并记录验证缺口，不把“编译成功”写成“界面已验收”。
 
-```powershell
-python <skill-root>\scripts\harness_run_ctl.py run-task --repo C:\Users\<you>\Desktop\CodexPotter --goal "修复 TUI snapshot 测试失败" --verify "cargo test -p codex-tui"
-```
+## 留下哪些记录
 
-## 按指定计划执行
+harness-run 提供基础文档与模板：AGENTS / CLAUDE 导航、README、架构、协作/计划/历史指南，以及执行计划与历史模板。完整结构见 [项目初始化](references/project-setup.md)，文件内容见 [基础模板](references/init-files.md)。
 
-如果用户明确说按照某个计划文件或目录执行，Codex 必须读取并遵守该计划，不再重新讨论范围或验证条件。
+每次接手先检查基础，按需初始化或补齐；已有等价结构直接沿用，不为文件名一致重建文档。新项目创建基础后继续实现，明确只要初始化时才在初始化完成处结束。
 
-示例：
+日常主要维护：
 
-```text
-使用 $harness-run 按 docs/plans/translation 执行：
-目标：将当前项目翻译成 Rust
-```
+- 当前执行计划：目标、模块依赖、里程碑、验收入口、阻塞与下一步。
+- 系统架构：模块职责、接口和数据流，结构变化时才改。
+- 同一任务的 history：交付或必要阶段留档时汇总，跨轮次沿用同一份。
 
-Codex 应该：
+指南和空白模板通常写一次，按需读。进度只在里程碑、重要变化、阻塞或交接时更新；普通编辑和测试不触发文档流水账。不会另建一套 `.harness-run/` 记录，也不默认新增专题文档。
 
-- 先读取 `docs/plans/translation`
-- 将该计划作为权威执行顺序
-- 只在计划和真实代码、项目指令、可执行证据冲突时停止说明
-- 不再追问“范围是什么”“验证条件是什么”
+测试、验证脚本和必要证据使用项目正常目录，记录只引用关键结论和位置。每项工作都应对应用户目标或已证实的阻塞，避免无关功能、重构或文档占用主线。
 
-## 前台模式
+## 运行边界
 
-前台模式不启动后台 controller，只在当前 Codex 会话中准备持久化状态。适合用户盯着当前会话持续推进。
+- 宿主负责自动继续、暂停、恢复、预算和权限；本 skill 不安装服务或启动后台循环。
+- 长时间运行以完成目标为终点。目标完成、预算耗尽、用户停止和外部阻塞是不同结果。
+- 换聊天或换 Agent 时可读取执行记录接手，但仍须重新核对真实代码和环境。
+- 应用退出、机器关机及账号限额等由宿主处理；skill 本身不保证全天候运行。
+- 发布、发送消息或变更真实外部数据，仍遵守用户授权和宿主工具约束。
 
-```text
-使用 $harness-run 前台模式执行：
-目标：整理项目架构并补齐文档
-```
+## 参考
 
-等价手动命令：
-
-```powershell
-python <skill-root>\scripts\harness_run_ctl.py run-task --foreground --repo C:\Users\<you>\Desktop\CodexPotter --goal "整理项目架构并补齐文档"
-```
-
-## 查看状态
-
-在 Codex 里说：
-
-```text
-查看 harness-run 状态
-```
-
-等价手动命令：
-
-```powershell
-python <skill-root>\scripts\harness_run_ctl.py status --repo C:\Users\<you>\Desktop\CodexPotter
-```
-
-状态会显示：
-
-- 当前目标
-- scope
-- verify 或证据清单模式
-- 当前 metric
-- 当前轮次
-- 最近状态
-- runtime/state/log 路径
-- `.harness-run/docs/`、运行计划和交接文档路径
-- 下一步建议
-
-## 停止运行
-
-在 Codex 里说：
-
-```text
-停止 harness-run
-```
-
-等价手动命令：
-
-```powershell
-python <skill-root>\scripts\harness_run_ctl.py stop --repo C:\Users\<you>\Desktop\CodexPotter
-```
-
-停止不会删除 `.harness-run/`。后续仍可查看状态、日志和历史记录。
-
-## 电脑重启后手动继续
-
-`harness-run` 不做开机自启动。电脑重启后，手动打开 Codex，然后说：
-
-```text
-使用 $harness-run 继续上次任务
-```
-
-或者重新给同一个目标：
-
-```text
-使用 $harness-run 持续执行：
-目标：将这个项目翻译成另一种语言
-```
-
-Codex 应该读取项目里的持久化文件继续：
-
-```text
-.harness-run/launch.json
-.harness-run/state.json
-.harness-run/rounds.tsv
-.harness-run/runtime.log
-.harness-run/docs/handoff.md
-.harness-run/docs/run-plan.md
-.harness-run/docs/constraints.md
-```
-
-## 持久化文件
-
-运行后目标项目下会出现：
-
-```text
-.harness-run/
-  launch.json
-  state.json
-  rounds.tsv
-  runtime.json
-  runtime.log
-  context.json
-  docs/
-  evidence/
-  generated/
-  design/
-```
-
-用户一般不需要手动编辑这些文件。Codex 用它们恢复上下文、判断下一轮、记录证据和定位 blocker。
-
-## 权限与监督器
-
-默认后台启动使用 `workspace_write` 策略，不会自动给嵌套 `codex exec` 注入 dangerous bypass 参数。只有在用户明确接受无沙箱风险并传入 `--execution-policy danger_full_access` 时，才会使用 `--dangerously-bypass-approvals-and-sandbox`。
-
-每个记录过的轮次都必须更新 `handoff.md`，并至少更新一项 progress、decision、plan、change inventory、completion 或 evidence artifact。后台 controller 会检查这些文件的修改时间；如果 Codex 只写了 `state.json` / `rounds.tsv` 而没有留下可读交接和证据，会停为 `needs_human`。
-
-如果重新运行同一个 goal/scope/verify 但改变了 `iterations`、`guard`、`stop_condition`、`execution_policy` 或 `codex_args` 等行为字段，`harness-run` 不会静默复用旧 launch，而是返回 contract mismatch，要求显式结束旧任务或 `--force` 归档后重开。
-
-## 协作留痕文档
-
-`harness-run` 是独立 skill，不要求目标项目本身已经有 `docs/`。每次运行都会在目标项目本地创建一套轻量协作文档：
-
-```text
-.harness-run/docs/
-  project-architecture.md
-  product-context.md
-  run-plan.md
-  constraints.md
-  change-inventory.md
-  validation-pipeline.md
-  operability.md
-  security-boundary.md
-  dependency-and-artifacts.md
-  references.md
-  generated-index.md
-  progress.md
-  decisions.md
-  design-index.md
-  handoff.md
-  completion.md
-  release-impact.md
-  sync-policy.md
-  quality-notes.md
-  ui-validation.md
-```
-
-这些文档的定位：
-
-- `project-architecture.md`：本次运行的证据型架构快照，不替代目标项目正式架构文档。
-- `run-plan.md`：本次持续运行的目标、范围、里程碑、验证方式和停止条件。
-- `constraints.md`：用户约束、仓库指令、编辑边界、验证要求和安全规则。
-- `validation-pipeline.md`：当前项目可用的本地/CI 验证入口。
-- `handoff.md`：每轮都要更新的新会话接手入口。
-- `completion.md`：任务完成后的结果、验证和剩余风险。
-- `sync-policy.md`：哪些内容只留在 `.harness-run/`，哪些可以摘要同步到目标项目自己的 `docs/`。
-
-如果目标项目已经有 `docs/exec-plans`、`docs/histories`、`docs/releases` 等结构，`.harness-run/docs/` 仍然是运行层；完成时只把可评审、脱敏后的摘要同步到目标项目正式文档。
-
-## 持续运行边界
-
-`harness-run` 能保证的是：只要电脑还在、Python controller 没被系统杀掉，它会持续 relaunch Codex 并从 `.harness-run/` 恢复上下文。默认后台运行最多 25 轮；如果达到轮次上限、连续停滞、缺少轮次留痕、controller 进程死亡或 Codex CLI 不可用，会停到可检查的状态，而不是继续无约束空转。
-
-它不会自动处理：
-
-- Windows 重启后的自动恢复
-- 用户注销后的自动恢复
-- Python 进程被系统或安全软件杀掉后的自动恢复
-- Codex CLI 自身不可用
-
-当前设计要求电脑重启后手动继续，不需要安装 Task Scheduler 或系统服务。
-
-## 用户只需要记住
-
-```text
-使用 $harness-run 持续执行：
-目标：……
-```
-
-```text
-查看 harness-run 状态
-```
-
-```text
-停止 harness-run
-```
+- [执行协议](SKILL.md)
+- [测试和 Computer Use 验收](references/verification.md)
+- [原生持续执行](references/native-runtime.md)
+- [检查与初始化](references/project-setup.md)
+- [基础文件模板](references/init-files.md)
+- [记录与接手](references/conventions.md)
