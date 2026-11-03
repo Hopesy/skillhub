@@ -40,7 +40,7 @@ npx skills remove
 | [revit-api](skills/revit-api/) | Revit 2026 API 文档查询与参考，覆盖 30 个命名空间、2724 个类型，支持搜索、浏览和模式速查 |
 | [pdf-patch](skills/pdf-patch/) | 扫描版或图片型 PDF 的局部文字修补，支持单字/短语替换、字体匹配、像素定位和渲染验证 |
 | [revit-automate-test](skills/revit-automate-test/) | Revit 插件真机自动化测试：部署验证、.addin 加载、UI Automation 驱动 WPF 界面、Journal 日志取证 |
-| [harness-run](skills/harness-run/) | 统一初始化与自主开发：按需补齐基础模板，配合原生 goal 推进实现、测试及真实验收 |
+| [harness-run](skills/harness-run/) | 接入新旧项目，整理架构、计划与设计文档，以可追溯记忆持续实现、测试和真实验收 |
 | [typos-publish](skills/typos-publish/) | 补全 Markdown 文章 frontmatter 并通过 API 发布到 Typos 博客，支持批量发布 |
 
 ## 目录结构

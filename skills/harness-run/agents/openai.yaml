@@ -1,7 +1,4 @@
 interface:
   display_name: "Harness Run"
-  short_description: "Prepare projects, implement goals, test, and verify real usage"
-  default_prompt: "Use $harness-run to check and fill missing project foundations, turn my goal into a module plan, implement and verify real user flows, and keep progressing with minimal document upkeep."
-
-policy:
-  allow_implicit_invocation: false
+  short_description: "Deliver long-running goals with concise docs and durable memory"
+  default_prompt: "Use $harness-run to resume my goal and latest constraints, prepare missing foundations, implement and verify real user flows, and retain confirmed decisions with concise documents."
