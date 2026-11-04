@@ -11,18 +11,9 @@ python <skill>/scripts/memory.py --project <project> recall "导出 对象 ID"
 python <skill>/scripts/memory.py --project <project> read "<返回的ref>"
 ```
 
-默认检索根目录 README/AGENTS/CLAUDE、docs/doc（含大小写变体）和已有 .trellis 知识目录。`docs/archive/`、`doc/archive/` 及大小写变体在遍历前排除，原始归档保留给显式追溯；completed 计划和 histories 仍参与普通检索。
+接入后从标准架构、design、当前计划和 history 召回依据，completed 计划也参与检索。脚本可发现根目录指令、docs/doc 及已有 .trellis 内容；遗留文档按 [existing-project.md](existing-project.md) 收拢。
 
 自定义文档用全局参数 `--source 相对路径` 补充；recall/read 使用相同来源参数。扫描优先处理显式来源；大项目出现截断提示时，用 `--source` 指定相关主题或模块缩小定位。Git 忽略规则生效，符号链接限定项目内，扫描有文件数、字节数和深度上限，部分扫描会给出 warnings。
-
-追溯原始资料时明确指定归档目录或其中的文件，例如：
-
-```text
-python <skill>/scripts/memory.py --project <project> --source docs/archive/legacy-2026-11-03 recall "导出 对象 ID"
-python <skill>/scripts/memory.py --project <project> --source docs/archive/legacy-2026-11-03 read "<返回的ref>"
-```
-
-`--source docs` 仍使用普通检索范围。归档结果附带 `provenance: archive`，`status` 保留原文决定状态；结合迁移索引、现行文档和最新用户要求核对其用途。指向归档的现行替代关系返回 `needs-review / archived-successor`，查明现行位置后修复指针。
 
 recall 默认三条、每条最多 400 字符摘录、总输出预算 3,000 字符；read 最多接收 30 个引用，整批预算 4,000 字符。`--max-chars` 调整预算。预算计算整个 JSON 输出，结果携带路径、行号、状态和引用。证据足够就使用摘录；缺少条件或上下文时展开。
 

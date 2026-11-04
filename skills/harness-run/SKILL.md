@@ -4,7 +4,7 @@ description: 按软件目标自主实现、测试和真实验收，按需补齐�
 license: MIT
 metadata:
   author: hopesy
-  version: "2.3.1"
+  version: "2.4.1"
 ---
 
 # Harness Run
@@ -16,7 +16,7 @@ metadata:
 先读适用仓库指令和用户目标，根据实际代码与运行入口选择路径：
 
 - **新建项目**：明确用途、关键用户路径和约束，按 [project-setup.md](references/project-setup.md) 建立基础与最小可运行骨架，随后实现首个可验收切片。用户明确仅需初始化时完成初始化范围。
-- **现有项目**：先核对代码、运行与测试基线及已有记录。首次接入按 [existing-project.md](references/existing-project.md) 保存原始资料，结合实现和最新用户约束整理标准架构、计划及 `docs/design/` 专题，再切换导航；已接入项目沿用当前记录，迁移中断则恢复原索引。已有任务读接续摘要，新需求在现有架构上规划切片。
+- **现有项目**：先核对代码、运行与测试基线及已有记录。首次接入按 [existing-project.md](references/existing-project.md) 将有效内容合并到标准架构、计划和 `docs/design/` 专题，更新引用并核验后清理旧文件、跳转入口及迁移副本，统一使用新体系。已接入项目增量维护并收拢遗留文档；中断后从当前计划接续。已有任务读接续摘要，新需求在现有架构上规划切片。
 
 首次接入以 AGENTS.md 作为共享指令入口，按 [project-setup.md](references/project-setup.md) 补齐短导航与记录约定，并按 [memory.md](references/memory.md#首次注册项目-hook) 注册项目 hook。显式调用 skill 时核对一次当前宿主的注册与会话目录；配置一致则复用，版本或路径变化导致差异时更新。仅触发 skill、尚未给出开发目标时，默认完成项目接入。
 
