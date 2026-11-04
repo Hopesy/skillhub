@@ -17,6 +17,7 @@ MAX_TOTAL_BYTES = 16_000_000
 MAX_ENTRIES = 10000
 MAX_DEPTH = 8
 STATES = {"accepted", "proposed", "rejected", "superseded", "needs-review"}
+EXPLICIT_ANCHOR = re.compile(r"\s*\{#([\w.-]+)\}\s*$")
 SKIP = {"node_modules", ".git", ".venv", "__pycache__", "dist", "build", "vendor"}
 
 
@@ -83,7 +84,7 @@ def marks(text: str) -> dict:
 
 
 def anchor(title: str) -> str:
-    explicit = re.search(r"\s*\{#([\w.-]+)\}\s*$", title)
+    explicit = EXPLICIT_ANCHOR.search(title)
     if explicit:
         return explicit[1]
     return re.sub(r"[^\w-]+", "-", title.casefold()).strip("-")
@@ -280,6 +281,11 @@ class Store:
             ends[index] = stack[-1][0] if stack else len(lines)
             stack.append((index, level))
         parents = []
+        # Ordinary headings can repeat under different topics. Allocate distinct
+        # inferred IDs while reserving explicitly named decision targets.
+        reserved = {anchor(title) for _, title, _ in headings if EXPLICIT_ANCHOR.search(title)}
+        used = set()
+        suffixes = {}
         for pos, (index, title, level) in enumerate(headings):
             direct_end = headings[pos + 1][0] if pos + 1 < len(headings) else len(lines)
             own_body = "".join(lines[index + 1:direct_end])
@@ -287,7 +293,15 @@ class Store:
             while parents and parents[-1][0] >= level:
                 parents.pop()
             parent = parents[-1][1] if parents else rel
-            note = Note(rel, anchor(title), title, body, index + 1, fingerprint, marks(own_body),
+            section = base = anchor(title)
+            if not EXPLICIT_ANCHOR.search(title):
+                suffix = suffixes.get(base, 1)
+                while section in used or section in reserved:
+                    section = f"{base}-{suffix}"
+                    suffix += 1
+                suffixes[base] = suffix
+            used.add(section)
+            note = Note(rel, section, title, body, index + 1, fingerprint, marks(own_body),
                         parent=parent, search_body=own_body)
             if note.key in self.nodes:
                 self.ambiguous.add(note.key)

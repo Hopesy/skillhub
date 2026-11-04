@@ -166,11 +166,48 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(recall(self.store(), "chain-start", limit=1)["hits"][0]["fault"], "lineage-depth-limit")
 
     def test_duplicate_anchor_and_unconfirmed_successor(self):
-        self.write("docs/duplicate.md", "# Notes\n## rule\nneedle one\n## rule\nneedle two\n")
+        self.write("docs/duplicate.md", "# Notes\n## rule {#same-rule}\nneedle one\n## rule {#same-rule}\nneedle two\n")
         self.assertEqual(recall(self.store(), "needle", limit=1)["hits"][0]["status"], "needs-review")
         self.write("docs/old.md", "---\nsuperseded_by: docs/draft.md\n---\n# Rule\nold-marker\n")
         self.write("docs/draft.md", "# Draft\nstatus: proposed\n\nA candidate rule.\n")
         self.assertEqual(recall(self.store(), "old-marker", limit=1)["hits"][0]["fault"], "successor-unconfirmed")
+
+    def test_repeated_headings_preserve_each_body_and_parent_status(self):
+        self.write("docs/service.md", "# Service\n## Authentication\nstatus: accepted\n\n"
+                   "### Current implementation\ncredential rotation is verified\n"
+                   "## Models\nstatus: proposed\n\n"
+                   "### Current implementation\nnamed model selection is planned\n")
+        store = self.store()
+        self.assertNotIn("duplicate-section-id", store.warnings)
+        for query, section, status, body in [
+            ("credential rotation", "current-implementation", "accepted", "credential rotation is verified"),
+            ("named model selection", "current-implementation-1", "proposed", "named model selection is planned"),
+        ]:
+            hit = recall(store, query, limit=1)["hits"][0]
+            self.assertEqual((hit["section"], hit["status"]), (section, status))
+            self.assertIn(body, read_refs(store, [hit["ref"]])["reads"][0]["text"])
+
+    def test_repeated_heading_successor_resolves_before_truncation(self):
+        self.write("docs/rule.md", "# Rules\n## Current\nstatus: superseded\n"
+                   "superseded_by: #current-1\n\nlegacy-export regenerates identifiers\n"
+                   "## Current\nstatus: accepted\n\nPreserve object identifiers\n")
+        store = self.store()
+        hit = recall(store, "legacy-export", limit=1)["hits"][0]
+        self.assertEqual((hit["section"], hit["status"]), ("current-1", "accepted"))
+        self.assertIn("Preserve object identifiers", read_refs(store, [hit["ref"]])["reads"][0]["text"])
+
+    def test_generated_section_ids_reserve_explicit_ids_and_suffixes(self):
+        self.write("docs/rule.md", "# Rules\n## Current\nauto-first\n"
+                   "## Current\nauto-second\n## Current-2\nauto-third\n"
+                   "## Stable {#current-1}\nexplicit-marker\n")
+        store = self.store()
+        self.assertFalse(store.ambiguous)
+        expected = {"auto-first": "current", "auto-second": "current-2",
+                    "auto-third": "current-2-1", "explicit-marker": "current-1"}
+        for query, section in expected.items():
+            hit = recall(store, query, limit=1)["hits"][0]
+            self.assertEqual(hit["section"], section)
+            self.assertIn(query, read_refs(store, [hit["ref"]])["reads"][0]["text"])
 
     def test_nested_and_fenced_metadata_are_data(self):
         self.write("docs/rule.md", "---\nexample:\n  status: superseded\n  superseded_by: docs/absent.md\n---\n# Rule\nneedle is valid\n```markdown\n## evil\nstatus: superseded\n```\n")

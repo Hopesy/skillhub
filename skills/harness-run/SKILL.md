@@ -4,7 +4,7 @@ description: 按软件目标自主实现、测试和真实验收，按需补齐�
 license: MIT
 metadata:
   author: hopesy
-  version: "2.4.1"
+  version: "2.4.2"
 ---
 
 # Harness Run
