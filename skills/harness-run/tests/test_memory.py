@@ -433,8 +433,8 @@ class MemoryTests(unittest.TestCase):
         command = [sys.executable, str(SCRIPTS / "session_start.py"), "--host", "test",
                    "--state-dir", str(self.root / "cache")]
         data = {"cwd": str(self.root), "session_id": "session", "source": "startup"}
-        def fire():
-            run = subprocess.run(command, input=packed(data), capture_output=True, text=True,
+        def fire(cmd=command, payload=data):
+            run = subprocess.run(cmd, input=packed(payload), capture_output=True, text=True,
                                  encoding="utf-8", check=True)
             return json.loads(run.stdout)
         first = fire()
@@ -442,6 +442,16 @@ class MemoryTests(unittest.TestCase):
         self.assertEqual(fire(), {})
         data["source"] = "compact"
         self.assertIn("最新用户约束", fire()["hookSpecificOutput"]["additionalContext"])
+
+        agy_cmd = [sys.executable, str(SCRIPTS / "session_start.py"), "--host", "antigravity",
+                   "--project", str(self.root), "--state-dir", str(self.root / "cache")]
+        agy_data = {"conversationId": "conv-a", "workspacePaths": [str(self.root)]}
+        agy_first = fire(agy_cmd, agy_data)
+        self.assertIn("最新用户约束", agy_first["injectSteps"][0]["systemMessage"]["systemMessage"])
+        self.assertEqual(fire(agy_cmd, agy_data), {})
+        bad = subprocess.run(agy_cmd, input="{}", capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(bad.returncode, 1)
+        self.assertEqual(json.loads(bad.stdout), {})
 
     def test_archived_plan_still_returns_navigation(self):
         result = navigation(str(self.root), session="one", plan="docs/old-plan.md", state_dir=self.root / "cache")

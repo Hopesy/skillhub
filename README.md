@@ -8,7 +8,7 @@ AI Agent 技能包集合，兼容 [Skills.sh](https://skills.sh) 生态。
 npx skills add Hopesy/skills
 ```
 
-支持 Claude Code、Cursor、Codex、Windsurf、Gemini CLI 等 Agent。
+支持 Claude Code、Codex、Antigravity、Cursor、Windsurf、Gemini CLI 等 Agent。
 
 ### 安装指定技能
 

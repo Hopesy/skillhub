@@ -15,8 +15,17 @@ import tempfile
 from memory_store import packed, read_text, safe_path
 
 
+HOOK_NAME = "harness-run"
 MARKER = "harness-run: session context"
-CONFIGS = {"claude": ".claude/settings.json", "codex": ".codex/hooks.json"}
+POWERSHELL_PREFIX = "powershell.exe -NoProfile -NonInteractive -EncodedCommand "
+CONFIGS = {
+    "antigravity": ".agents/hooks.json",
+    "claude": ".claude/settings.json",
+    "codex": ".codex/hooks.json",
+}
+ANTIGRAVITY_ALT_CONFIGS = (".agent/hooks.json", "_agents/hooks.json", "_agent/hooks.json")
+ANTIGRAVITY_FLAT_EVENTS = {"SessionStart", "PreInvocation", "PostInvocation", "Stop"}
+ANTIGRAVITY_GROUPED_EVENTS = {"PreToolUse", "PostToolUse"}
 
 
 def unique_keys(pairs):
@@ -28,7 +37,16 @@ def unique_keys(pairs):
     return result
 
 
-def hook_group(project, host, plan=None, script=None):
+def windows_command(argv):
+    # Antigravity and Codex default to cmd.exe on Windows. Encoded PowerShell
+    # also works with a PowerShell runner and preserves %, !, $ and quotes.
+    code = "& " + " ".join("'" + arg.replace("'", "''") + "'" for arg in argv)
+    code += "; exit $LASTEXITCODE"
+    encoded = base64.b64encode(code.encode("utf-16le")).decode("ascii")
+    return POWERSHELL_PREFIX + encoded
+
+
+def hook_entry(project, host, plan=None, script=None):
     script = Path(script or Path(__file__).with_name("session_start.py")).resolve()
     if not script.is_file():
         raise ValueError("hook-script-missing")
@@ -38,6 +56,9 @@ def hook_group(project, host, plan=None, script=None):
         if not safe_path(project, plan).is_file():
             raise ValueError("plan-missing")
         argv += ["--plan", plan]
+    if host == "antigravity":
+        command = windows_command(argv) if os.name == "nt" else shlex.join(argv)
+        return {"type": "command", "command": command, "timeout": 10}
     handler = {"type": "command", "timeout": 10, "statusMessage": MARKER}
     if host == "claude":
         # Exec form passes paths literally, independent of the host's shell.
@@ -45,16 +66,77 @@ def hook_group(project, host, plan=None, script=None):
     else:
         handler.update(command=shlex.join(argv), additionalContextLimit=2000)
         if os.name == "nt":
-            # Codex defaults to cmd.exe on Windows. Encoded PowerShell also works
-            # with a configured PowerShell runner and preserves %, !, $ and quotes.
-            code = "& " + " ".join("'" + arg.replace("'", "''") + "'" for arg in argv)
-            code += "; exit $LASTEXITCODE"
-            encoded = base64.b64encode(code.encode("utf-16le")).decode("ascii")
-            handler["commandWindows"] = "powershell.exe -NoProfile -NonInteractive -EncodedCommand " + encoded
+            handler["commandWindows"] = windows_command(argv)
     return {"matcher": "^(startup|resume|clear|compact|fork)$", "hooks": [handler]}
 
 
-def merge_config(data, group):
+def validate_antigravity_handler(item):
+    if not isinstance(item, dict):
+        raise ValueError("config-handler-object-required")
+    if "type" in item and item["type"] != "command":
+        raise ValueError("config-handler-type-invalid")
+    command = item.get("command")
+    if not isinstance(command, str) or not command.strip():
+        raise ValueError("config-handler-command-required")
+
+
+def is_owned_antigravity_handler(item):
+    if item.get("type", "command") != "command":
+        return False
+    command = item.get("command")
+    if not isinstance(command, str):
+        return False
+    if command.startswith(POWERSHELL_PREFIX):
+        token = command[len(POWERSHELL_PREFIX):].strip()
+        try:
+            decoded = base64.b64decode(token, validate=True).decode("utf-16le")
+        except (ValueError, UnicodeError):
+            return False
+        return (decoded.startswith("& '") and decoded.endswith("; exit $LASTEXITCODE")
+                and " '-B' '-X' 'utf8' " in decoded
+                and " '--host' 'antigravity' '--project' " in decoded)
+    try:
+        argv = shlex.split(command, posix=True)
+    except ValueError:
+        return False
+    return (len(argv) >= 9 and argv[1:4] == ["-B", "-X", "utf8"]
+            and argv[4].replace("\\", "/").rsplit("/", 1)[-1] == "session_start.py"
+            and argv[5:8] == ["--host", "antigravity", "--project"])
+
+
+def merge_antigravity_config(data, handler):
+    if not isinstance(data, dict):
+        raise ValueError("config-object-required")
+    for spec in data.values():
+        if not isinstance(spec, dict):
+            raise ValueError("config-hook-spec-object-required")
+        if "enabled" in spec and not isinstance(spec["enabled"], bool):
+            raise ValueError("config-hook-enabled-bool-required")
+        for event in ANTIGRAVITY_FLAT_EVENTS & spec.keys():
+            if not isinstance(spec[event], list):
+                raise ValueError("config-session-start-list-required" if event == "SessionStart"
+                                 else f"config-{event}-list-required")
+            for item in spec[event]:
+                validate_antigravity_handler(item)
+        for event in ANTIGRAVITY_GROUPED_EVENTS & spec.keys():
+            if not isinstance(spec[event], list):
+                raise ValueError(f"config-{event}-list-required")
+            for group in spec[event]:
+                if not isinstance(group, dict) or not isinstance(group.get("hooks"), list):
+                    raise ValueError("config-matcher-hooks-list-required")
+                for item in group["hooks"]:
+                    validate_antigravity_handler(item)
+    result = copy.deepcopy(data)
+    owned = result.setdefault(HOOK_NAME, {})
+    entries = owned.get("SessionStart", [])
+    retained = [item for item in entries if not is_owned_antigravity_handler(item)]
+    owned["SessionStart"] = [*retained, handler]
+    return result
+
+
+def merge_config(data, entry, host="codex"):
+    if host == "antigravity":
+        return merge_antigravity_config(data, entry)
     if not isinstance(data, dict):
         raise ValueError("config-object-required")
     result = copy.deepcopy(data)
@@ -65,18 +147,18 @@ def merge_config(data, group):
     if not isinstance(entries, list):
         raise ValueError("config-session-start-list-required")
     retained = []
-    for entry in entries:
-        if not isinstance(entry, dict) or not isinstance(entry.get("hooks"), list):
+    for item_group in entries:
+        if not isinstance(item_group, dict) or not isinstance(item_group.get("hooks"), list):
             raise ValueError("config-matcher-hooks-list-required")
-        if any(not isinstance(item, dict) for item in entry["hooks"]):
+        if any(not isinstance(item, dict) for item in item_group["hooks"]):
             raise ValueError("config-handler-object-required")
-        remaining = [item for item in entry["hooks"]
+        remaining = [item for item in item_group["hooks"]
                      if not (item.get("type") == "command" and item.get("statusMessage") == MARKER)]
-        if remaining == entry["hooks"]:
-            retained.append(entry)
+        if remaining == item_group["hooks"]:
+            retained.append(item_group)
         elif remaining:
-            retained.append({**entry, "hooks": remaining})
-    hooks["SessionStart"] = [*retained, group]
+            retained.append({**item_group, "hooks": remaining})
+    hooks["SessionStart"] = [*retained, entry]
     return result
 
 
@@ -89,7 +171,7 @@ def install(project, host, plan=None, script=None, check=False, session_cwd=None
     path = safe_path(root, CONFIGS[host])
     original = path.read_bytes() if path.exists() else None
     data = json.loads(original.decode("utf-8-sig"), object_pairs_hook=unique_keys) if original is not None else {}
-    merged = merge_config(data, hook_group(root, host, plan, script))
+    merged = merge_config(data, hook_entry(root, host, plan, script), host)
     changed = data != merged
     result = {"status": "needs-update" if changed else "unchanged", "host": host,
               "project": str(root), "config": str(path), "session_scope": "unverified", "warnings": []}
@@ -104,6 +186,10 @@ def install(project, host, plan=None, script=None, check=False, session_cwd=None
         toml = safe_path(root, ".codex/config.toml")
         if toml.is_file() and "[hooks" in read_text(toml):
             result["warnings"].append("codex-inline-hooks-present: both project hook sources will load")
+    elif host == "antigravity":
+        for alt in ANTIGRAVITY_ALT_CONFIGS:
+            if safe_path(root, alt).is_file():
+                result["warnings"].append(f"antigravity-extra-hooks-present: {alt} will also load")
     if check or not changed:
         return result
     path.parent.mkdir(parents=True, exist_ok=True)

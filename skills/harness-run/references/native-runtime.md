@@ -18,6 +18,7 @@
 
 - **Codex**：优先使用当前会话暴露的 goal 工具或原生 `/goal`。只有用户明确要求设置目标时才创建；已有目标可用时不重复创建。预算仅按用户明确要求设置。暂停、恢复、阻塞和完成遵循当前工具的约束。
 - **Claude Code**：使用当前版本提供的 `/goal` 管理有完成条件的持续任务。周期性检查才考虑 `/loop` 或 `/schedule`，且只在用户要求周期执行时使用；一次持续开发不需要额外定时器。
+- **Antigravity**：持续目标、上下文压缩和定时任务分别由用户在输入框触发 `/goal`、`/compact`、`/schedule`，agent 在需要时提示准确入口，不在终端执行 slash 命令；已授权的子代理（如界面真实验收使用的 `browser`）、后台任务或 `schedule` 工具按宿主规则配合使用。工作区根目录 `AGENTS.md` 由宿主常驻加载，新会话同时通过 `.agents/hooks.json` 注入导航。
 - **其他宿主**：选择实际存在且授权的等价能力。没有等价能力就说明边界，不编造命令，也不自动安装守护进程。
 
 skill 的完成标准仍需落实到项目证据。宿主的完成评估不能替代实际运行测试或操作程序。
@@ -38,3 +39,4 @@ skill 的完成标准仍需落实到项目证据。宿主的完成评估不能�
 
 - [Codex Goals](https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex)：持久目标、自动继续及生命周期。
 - [Claude Code loops](https://claude.com/resources/articles/getting-started-with-loops)：目标驱动与定时循环的区别。
+- [Antigravity Docs](https://antigravity.google/docs/hooks)：工作区规则、生命周期 hooks 与定制机制。

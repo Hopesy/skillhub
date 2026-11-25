@@ -42,7 +42,7 @@ python <skill>/scripts/memory.py --project <project> entry --host generic --sess
 
 去重账本位于用户缓存目录的 harness-run/context/，只写事件、状态、长度和哈希；`--state-dir` 可指定隔离缓存。缓存写入失败仍返回入口及警告。该缓存仅服务入口去重，项目事实继续由现有文档维护。
 
-`scripts/session_start.py --host <宿主名> --project <project>` 接收 stdin 的 `cwd/session_id/source`，输出 SessionStart 的 `hookSpecificOutput.additionalContext`；去重时输出 `{}`。注册绑定项目根，从子目录启动仍导航到同一项目；cwd 在其他项目时输出 `{}`。
+`scripts/session_start.py --host <宿主名> --project <project>` 适配各宿主的 SessionStart JSON 契约：`claude`/`codex` 读取 stdin 的 `cwd/session_id/source`，输出 `hookSpecificOutput.additionalContext`；`antigravity` 读取 `cwd`（或 `workspacePaths`）与 `conversationId`，输出 `injectSteps` 的 `systemMessage`。去重或会话目录不在当前项目时输出 `{}`；注册绑定项目根，从子目录启动仍导航到同一项目。
 
 ## 首次注册项目 hook
 
@@ -52,19 +52,20 @@ python <skill>/scripts/memory.py --project <project> entry --host generic --sess
 python "<skill>/scripts/install_hooks.py" --project "<project>" --host codex --session-cwd "<宿主会话目录>"
 ```
 
-Claude Code 将 `codex` 改为 `claude`。会话目录从宿主环境或任务元数据取得；工具执行命令时的 cwd 单独指定。脚本采用当前 Python 解释器和共享 skill 脚本的绝对路径，合并下列项目文件：
+Claude Code 将 `codex` 改为 `claude`，Antigravity 改为 `antigravity`。会话目录从宿主环境或任务元数据取得；工具执行命令时的 cwd 单独指定。脚本采用当前 Python 解释器和共享 skill 脚本的绝对路径，合并下列项目文件：
 
 | 宿主 | 项目配置 |
 |---|---|
 | Codex | `.codex/hooks.json` |
 | Claude Code | `.claude/settings.json` |
+| Antigravity | `.agents/hooks.json` |
 
-保留其他设置和 hooks，以固定 `statusMessage` 标识自身条目；重复执行复用，路径变化时定点更新。已有配置解析异常时保留原文件并报告原因。用户级宿主配置保持原样。Codex 已有 TOML hooks 时会提示两份来源合并加载，核对已有条目即可。
+保留其他设置和 hooks：Codex / Claude Code 以固定 `statusMessage` 标识自身条目；Antigravity 维护顶层 `harness-run` 命名空间下的自身 handler，保留其他命名 hook 与其余事件。重复执行复用，路径变化时定点更新。已有配置解析异常时保留原文件并报告原因。用户级宿主配置保持原样。Codex 已有 TOML hooks 或 Antigravity 已有 `.agent/`、`_agents/`、`_agent/` 下的 `hooks.json` 时会提示多来源并存，核对已有条目即可。
 
 可选 `--plan 项目内相对路径` 绑定已确定的当前计划；通常省略，沿用 AGENTS/README 的动态导航。`--check` 只核对注册，输出 `unchanged` 表示配置一致，`needs-update` 表示需更新；`session_scope` 单独报告会话目录是否位于项目内。目录不同返回 `outside-project`，检查以非零退出；省略目录为 `unverified`。安装目录、Python 或项目位置变化后重新注册。
 
-注册后回读配置并执行 `--check`，核对项目和脚本路径；升级后再次显式调用 skill 时检查现有注册，更新有差异的条目。用实际注册命令输入 stdin 事件，核对首次注入、相同 startup 去重、恢复重发及 stderr。出现 `state-write-failed` 时核查该 Python 对缓存的写入能力；必要时用已验证可写的解释器重新注册，保留现有计划和其他 hook，再复测。随后在宿主 SessionStart 核对实际注入。Codex 项目层与 hook 定义需要宿主信任，CLI 用 `/hooks` 查看和完成审核；Claude Code 按项目配置加载与信任提示启用。报告分别写明配置、脚本测试和真实触发状态。
+注册后回读配置并执行 `--check`，核对项目和脚本路径；升级后再次显式调用 skill 时检查现有注册，更新有差异的条目。用实际注册命令输入 stdin 事件，核对首次注入、相同 startup 去重、恢复重发及 stderr。出现 `state-write-failed` 时核查该 Python 对缓存的写入能力；必要时用已验证可写的解释器重新注册，保留现有计划和其他 hook，再复测。随后在宿主 SessionStart 核对实际注入。Codex 项目层与 hook 定义需要宿主信任，CLI 用 `/hooks` 查看和完成审核；Claude Code 按项目配置加载与信任提示启用；Antigravity 自动加载工作区 `.agents/hooks.json` 并在新会话启动时触发。报告分别写明配置、脚本测试和真实触发状态。
 
-只注册 SessionStart 的 startup/resume/clear/compact/fork。Hook 输出短导航，agent 按 AGENTS.md 在用户修正和重要节点维护文档；下一会话据此读取接续摘要。Claude Code 使用直接执行的 command/args；Codex 的 Windows 命令使用编码 PowerShell 传参，兼容路径中的空格和特殊字符。
+Codex / Claude Code 注册 SessionStart 的 startup/resume/clear/compact/fork；Antigravity 注册新会话 SessionStart，并配合宿主常驻加载的根目录 `AGENTS.md` 维持导航。Hook 输出短导航，agent 按 AGENTS.md 在用户修正和重要节点维护文档；下一会话据此读取接续摘要。Claude Code 使用直接执行的 command/args；Codex 和 Antigravity 的 Windows 命令使用编码 PowerShell 传参，兼容路径中的空格和特殊字符。
 
-宿主契约参考：[Codex hooks](https://developers.openai.com/codex/hooks)、[Claude Code hooks](https://code.claude.com/docs/en/hooks)。
+宿主契约参考：[Codex hooks](https://developers.openai.com/codex/hooks)、[Claude Code hooks](https://code.claude.com/docs/en/hooks)、[Antigravity hooks](https://antigravity.google/docs/hooks)。

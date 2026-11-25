@@ -14,7 +14,7 @@
 
 ## 现有项目
 
-只需接入当前项目时，输入 `$harness-run`（Claude Code 使用 `/harness-run`）。Agent 会结合代码、测试和最新要求，将旧文档的有效内容整合到标准文档，更新引用并清理旧文件，再注册当前宿主的项目级 hook。已接入项目增量维护并收拢遗留文档，中断后从当前计划继续。
+只需接入当前项目时，输入 `$harness-run`（Claude Code 使用 `/harness-run`，Antigravity 可直接说“使用 harness-run 接入当前项目”）。Agent 会结合代码、测试和最新要求，将旧文档的有效内容整合到标准文档，更新引用并清理旧文件，再注册当前宿主的项目级 hook。已接入项目增量维护并收拢遗留文档，中断后从当前计划继续。
 
 ```text
 使用 harness-run 完善当前项目。
@@ -52,9 +52,9 @@ docs/
 
 接入后，日常开发可直接描述需求；agent 按项目 `AGENTS.md` 持续保存用户修正、重要决定和已验证进度。新会话、恢复或压缩后，hook 提供短导航，agent 再读取当前计划。切换宿主时在该宿主触发一次 skill，补齐它的项目 hook。
 
-配置位置：Claude Code 为 `.claude/settings.json`，Codex 为 `.codex/hooks.json`。注册脚本保留已有设置并复用自身条目；首次加载按宿主提示完成项目/hook 信任，Codex CLI 可用 `/hooks` 检查。详见 [注册说明](references/memory.md#首次注册项目-hook)。
+配置位置：Claude Code 为 `.claude/settings.json`，Codex 为 `.codex/hooks.json`，Antigravity 为 `.agents/hooks.json`。注册脚本保留已有设置并复用自身条目；首次加载按宿主提示完成项目/hook 信任，Codex CLI 可用 `/hooks` 检查。详见 [注册说明](references/memory.md#首次注册项目-hook)。
 
-安装或升级后核对宿主技能列表和实际版本。默认允许按任务相关性发现 skill，也支持 `$harness-run` 显式调用。排查清单缺项时核对安装位置和 `agents/openai.yaml` 的调用策略；`allow_implicit_invocation: false` 会让技能默认从模型上下文清单中省略。
+安装或升级后核对宿主技能列表和实际版本。默认允许按任务相关性发现 skill，也支持 `$harness-run` 等方式显式调用。排查清单缺项时核对安装位置（如 Antigravity 扫描全局 `~/.gemini/config/skills/`、项目 `.agents/skills/` 或 `.agents/skills.json`）和 `agents/openai.yaml` 的调用策略；`allow_implicit_invocation: false` 会让技能默认从模型上下文清单中省略。
 
 ## 参考
 
