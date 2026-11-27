@@ -272,7 +272,7 @@ def is_temp_artifact_path(rel_path: str, extra_rel_prefixes: list[str] | None = 
     norm = normalize_git_path(rel_path)
     parts = [seg for seg in norm.split("/") if seg]
     for seg in parts:
-        if seg == ".codex-review" or (seg.startswith(".") and seg.endswith("-temp")):
+        if seg in {".code-review", ".codex-review"} or (seg.startswith(".") and seg.endswith("-temp")):
             return True
     for prefix in extra_rel_prefixes or []:
         p_norm = normalize_git_path(prefix).rstrip("/")
@@ -804,7 +804,7 @@ def collect_diff_selection(
                 populate_git_patch_for_entry(repo_root, diff_target, df)
             by_path[df.path] = df
 
-        ls_exclude_args = ["-x", ".*-temp", "-x", ".codex-review"]
+        ls_exclude_args = ["-x", ".*-temp", "-x", ".code-review", "-x", ".codex-review"]
         for pref in extra_temp_prefixes:
             ls_exclude_args.extend(["-x", f"/{_escape_gitignore_literal(pref)}"])
         ls_res = run_git(

@@ -1,4 +1,4 @@
-"""5-round review session state machine and artifact store under .<project>-temp/codex-review/."""
+"""5-round review session state machine and artifact store under .<project>-temp/code-review/."""
 
 from __future__ import annotations
 
@@ -30,10 +30,10 @@ def sanitize_project_slug(name: str) -> str:
 
 
 def default_temp_root(base_dir: Path) -> Path:
-    """Follow user convention: store intermediate artifacts under `.<project>-temp/codex-review`."""
+    """Follow user convention: store intermediate artifacts under `.<project>-temp/code-review`."""
     resolved = base_dir.resolve()
     slug = sanitize_project_slug(resolved.name)
-    return resolved / f".{slug}-temp" / "codex-review"
+    return resolved / f".{slug}-temp" / "code-review"
 
 
 def resolve_artifact_root(base_dir: Path, artifact_root: str = "") -> Path:
@@ -152,7 +152,7 @@ class SessionStore:
             raise RuntimeError("Failed to allocate a unique session directory.")
 
         initial = {
-            "schema": "codex-review/v2",
+            "schema": "code-review/v2",
             "session_id": store.session_id,
             "mode": mode,
             "agent": agent,

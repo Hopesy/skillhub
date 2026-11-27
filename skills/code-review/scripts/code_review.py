@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unified CLI for `codex-review`: cross-agent plan discussion, review (`plan`/`code`), and TODO execution (`exec`) across local `codex`, `claude`, and `agy`."""
+"""Unified CLI for `code-review`: cross-agent plan discussion, review (`plan`/`code`), and TODO execution (`exec`) across local `codex`, `claude`, and `agy`."""
 
 from __future__ import annotations
 
@@ -677,7 +677,7 @@ def cmd_summary(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="codex_review.py",
+        prog="code_review.py",
         description="Unified multi-agent workflow CLI (`codex` default / `claude` / `agy`) for discussion, review, and plan execution.",
     )
     sub = p.add_subparsers(dest="subcommand", required=True)
@@ -705,12 +705,12 @@ def build_parser() -> argparse.ArgumentParser:
         sp.add_argument("--model", default="", help="Optional model override; empty uses selected agent's default config")
         sp.add_argument("--effort", default="", help="Optional reasoning effort override; empty uses selected agent's default config")
         sp.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SEC, help="Timeout seconds")
-        sp.add_argument("--artifact-dir", default="", help="Override .<project>-temp/codex-review root")
+        sp.add_argument("--artifact-dir", default="", help="Override .<project>-temp/code-review root")
         sp.add_argument("--keep-mcp", action="store_true", help="Keep user MCP servers enabled")
 
     sp_prev = sub.add_parser("preview", help="Preview deterministic 6-gate file selection without calling an agent")
     add_common_git_flags(sp_prev)
-    sp_prev.add_argument("--artifact-dir", default="", help="Override .<project>-temp/codex-review root")
+    sp_prev.add_argument("--artifact-dir", default="", help="Override .<project>-temp/code-review root")
     sp_prev.set_defaults(func=cmd_preview)
 
     sp_disc = sub.add_parser("discuss", help="Read-only plan drafting or architecture discussion via codex/claude/agy")
@@ -750,7 +750,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp_sum = sub.add_parser("summary", help="Render multi-round convergence summary for a review session")
     sp_sum.add_argument("--repo", default=".", help="Repository or workspace directory")
-    sp_sum.add_argument("--artifact-dir", default="", help="Override .<project>-temp/codex-review root")
+    sp_sum.add_argument("--artifact-dir", default="", help="Override .<project>-temp/code-review root")
     sp_sum.add_argument("--session", required=True, help="Session ID")
     sp_sum.add_argument("-f", "--format", choices=["markdown", "json"], default="markdown")
     sp_sum.set_defaults(func=cmd_summary)

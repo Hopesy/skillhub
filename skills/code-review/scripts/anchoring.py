@@ -262,7 +262,7 @@ def anchor_and_filter_findings(
         raw_id = str(finding.get("id") or "").strip()
 
         # In `plan` mode, match the explicitly submitted plan document FIRST before temp-dir filtering
-        # so plans saved under `.<project>-temp/codex-review/draft-plan.md` are never dropped (F16)!
+        # so plans saved under `.<project>-temp/code-review/draft-plan.md` are never dropped (F16)!
         if mode == "plan":
             rel_file = normalize_rel_path(raw_file)
             if plan_lines is not None and _matches_plan_target(rel_file, plan_label):

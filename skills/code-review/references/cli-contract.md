@@ -1,6 +1,6 @@
-# `codex_review.py` CLI 契约与多代理映射说明
+# `code_review.py` CLI 契约与多代理映射说明
 
-脚本位于技能目录 `scripts/codex_review.py`。
+脚本位于技能目录 `scripts/code_review.py`。
 
 ## 1. 三端本地代理与权限映射（`--agent`）
 
@@ -16,22 +16,22 @@
 
 ```powershell
 # 1) 确定性 6 门文件筛选预览（不调用模型）
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" preview --repo . [--from main] [-c <sha>]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" preview --repo . [--from main] [-c <sha>]
 
 # 2) 讨论或起草方案（只读，支持 --resume-id 多轮追问、--out-file 保存方案初稿）
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" discuss --repo . --agent <codex|claude|agy> -p "<主题>" [--out-file <plan.md>] [--resume-id <id>]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" discuss --repo . --agent <codex|claude|agy> -p "<主题>" [--out-file <plan.md>] [--resume-id <id>]
 
 # 3) 结构化方案审查（只读，默认 codex 1 轮，最高 5 轮）
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" plan --repo . --plan-file <plan.md> --goal "<需求>" [--agent codex|claude|agy] [--max-rounds 1]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" plan --repo . --plan-file <plan.md> --goal "<需求>" [--agent codex|claude|agy] [--max-rounds 1]
 
 # 4) 委派执行 TODO 计划（允许工作区写入，返回 changed_files 列表）
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" exec --repo . --agent <agy|claude|codex> --plan-file <plan.md> [-g "<约束>"]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" exec --repo . --agent <agy|claude|codex> --plan-file <plan.md> [-g "<约束>"]
 
 # 5) 结构化代码与计划落实验收（只读，默认 codex 1 轮，最高 5 轮）
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" code --repo . [--from main] [-c <sha>] [--plan-file <plan.md>] -b "<背景>" [--agent codex|claude|agy] [--max-rounds 1]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" code --repo . [--from main] [-c <sha>] [--plan-file <plan.md>] -b "<背景>" [--agent codex|claude|agy] [--max-rounds 1]
 
 # 6) 导出审查会话总结
-python -B -X utf8 "<SKILL_DIR>/scripts/codex_review.py" summary --repo . --session <session_id> [-f markdown|json]
+python -B -X utf8 "<SKILL_DIR>/scripts/code_review.py" summary --repo . --session <session_id> [-f markdown|json]
 ```
 
 ---

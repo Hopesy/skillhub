@@ -1,4 +1,4 @@
-"""Unit tests for the `codex-review` deterministic engine."""
+"""Unit tests for the `code-review` deterministic engine."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-import codex_review
+import code_review
 from anchoring import anchor_and_filter_findings, resolve_snippet_lines
 from codex_runner import (
     SelectionResult,
@@ -170,7 +170,7 @@ class AnchoringTests(unittest.TestCase):
         with project_temp_dir() as case_dir:
             repo = case_dir / "myproj"
             repo.mkdir()
-            plan_in_temp = repo / ".myproj-temp" / "codex-review" / "draft-plan.md"
+            plan_in_temp = repo / ".myproj-temp" / "code-review" / "draft-plan.md"
             plan_in_temp.parent.mkdir(parents=True)
             plan_text = "# Plan\n1. Step A\n2. Step B\n"
             plan_in_temp.write_text(plan_text, encoding="utf-8")
@@ -424,11 +424,11 @@ class SessionAndRunnerTests(unittest.TestCase):
                 ),
             ]
 
-            with mock.patch("codex_review.run_codex_structured_review", side_effect=responses) as mocked_run:
+            with mock.patch("code_review.run_codex_structured_review", side_effect=responses) as mocked_run:
                 # Verify default max_rounds=1 returns BATCH_FIX_AND_DELIVER and passes empty model/effort overrides!
                 buf_single = StringIO()
                 with mock.patch("sys.stdout", buf_single):
-                    rc_single = codex_review.main(["code", "--repo", str(repo), "-c", buggy_sha, "-b", "单轮默认验证"])
+                    rc_single = code_review.main(["code", "--repo", str(repo), "-c", buggy_sha, "-b", "单轮默认验证"])
                 self.assertEqual(rc_single, 0)
                 single_out = json.loads(buf_single.getvalue())
                 self.assertEqual(single_out["max_rounds"], 1)
@@ -436,10 +436,10 @@ class SessionAndRunnerTests(unittest.TestCase):
                 self.assertEqual(mocked_run.call_args_list[0].kwargs["model"], "")
                 self.assertEqual(mocked_run.call_args_list[0].kwargs["effort"], "")
 
-            with mock.patch("codex_review.run_codex_structured_review", side_effect=responses) as mocked_run:
+            with mock.patch("code_review.run_codex_structured_review", side_effect=responses) as mocked_run:
                 buf1 = StringIO()
                 with mock.patch("sys.stdout", buf1):
-                    rc1 = codex_review.main(["code", "--repo", str(repo), "-c", buggy_sha, "-b", "安全计算", "--max-rounds", "3"])
+                    rc1 = code_review.main(["code", "--repo", str(repo), "-c", buggy_sha, "-b", "安全计算", "--max-rounds", "3"])
                 self.assertEqual(rc1, 0)
                 sid = json.loads(buf1.getvalue())["session_id"]
 
@@ -451,7 +451,7 @@ class SessionAndRunnerTests(unittest.TestCase):
 
                 buf2 = StringIO()
                 with mock.patch("sys.stdout", buf2):
-                    rc2 = codex_review.main(["code", "--repo", str(repo), "--session", sid, "-c", repair_sha])
+                    rc2 = code_review.main(["code", "--repo", str(repo), "--session", sid, "-c", repair_sha])
                 self.assertEqual(rc2, 0)
                 prompt2 = mocked_run.call_args_list[1].kwargs["prompt"]
                 # Cumulative diff from base -> repair_sha shows `return 1` -> `return 2`, NOT `1 / 0` -> `2`!

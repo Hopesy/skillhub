@@ -15,7 +15,7 @@ npx skills add Hopesy/skillhub --list
 
 # 安装单个指定技能（例如安装到全局）
 npx skills add Hopesy/skillhub --skill harness-run -g
-npx skills add Hopesy/skillhub --skill codex-review -g
+npx skills add Hopesy/skillhub --skill code-review -g
 
 # 指定安装到特定 Agent（如 claude-code / codex）
 npx skills add Hopesy/skillhub --skill revit-api -a claude-code
@@ -31,7 +31,7 @@ npx skills remove
 | 分类 | 技能 | 一句话定位 | 主要运行依赖 |
 | :--- | :--- | :--- | :--- |
 | **研发与协同** | [harness-run](skills/harness-run/) | 新老项目标准化接入、跨会话可追溯记忆留存与“编码→测试→真实验收”自主推进 | Python 3、Git |
-| **研发与协同** | [codex-review](skills/codex-review/) | 本地三端代理（Codex / Claude Code / `agy`）分工协同：方案讨论起草、确定性 6 门过滤审查、跨代理执行 TODO 与漏洞验收 | Python 3、Git、本机 `codex` / `claude` / `agy` |
+| **研发与协同** | [code-review](skills/code-review/) | 本地三端代理（Codex / Claude Code / `agy`）分工协同：方案讨论起草、确定性 6 门过滤审查、跨代理执行 TODO 与漏洞验收 | Python 3、Git、本机 `codex` / `claude` / `agy` |
 | **Revit 开发** | [saury-revit](skills/saury-revit/) | 基于 `Saury.Revit.Template` 交互式创建 Revit 2026 插件工程（MVVM + DI）并按规范扩展功能 | .NET 8.0+ SDK、Revit 2026 |
 | **Revit 开发** | [revit-api](skills/revit-api/) | 基于 `RevitAPI.dll v26.0.4.0` 的离线精准 API 查询库（30 个命名空间 / 2,724 个类型 + 11 套核心模式） | Python 3 |
 | **Revit 开发** | [revit-automate-test](skills/revit-automate-test/) | Revit 插件真机验收：程序集预加载冒烟、`.addin`/MSI 部署核验、UI Automation 驱动 WPF 与 Journal 取证 | Windows PowerShell、Revit 真机环境 |
@@ -39,7 +39,7 @@ npx skills remove
 | **文档与发布** | [typos-publish](skills/typos-publish/) | 自动提取补全 Markdown 文章 Frontmatter（标题、语义英文 `slug`、摘要、分类），确认后单篇或批量发布到 Typos 博客 | Node.js、站点 `config.json` 密钥 |
 
 > **常用组合推荐**
-> - **日常全栈/长程软件研发**：`harness-run`（管架构文档、执行计划与跨会话记忆） + `codex-review`（让擅长清爽编码的模型写实现，调用深层推理模型只读抓漏洞并一次性修完）。
+> - **日常全栈/长程软件研发**：`harness-run`（管架构文档、执行计划与跨会话记忆） + `code-review`（让擅长清爽编码的模型写实现，调用深层推理模型只读抓漏洞并一次性修完）。
 > - **Revit 插件从零开发到交付**：`saury-revit`（初始化 MVVM+DI 工程） → `revit-api`（查准 2026 真实 API 签名写业务） → `revit-automate-test`（拉起 Revit 真机跑 WPF UI 自动化与 Journal 验收）。
 
 ---
@@ -58,15 +58,15 @@ npx skills remove
   - `使用 harness-run 接入当前项目，整理现有文档并跑通构建测试基线。`
   - `使用 harness-run 接续当前项目的活跃计划，继续完成下一个待验收切片。`
 
-#### 2. [`codex-review`](skills/codex-review/) — 本地多代理分工协同与确定性审查闭环
+#### 2. [`code-review`](skills/code-review/) — 本地多代理分工协同与确定性审查闭环
 - **解决什么问题**：单一模型既做设计又写代码容易产生盲区（如宏观编码模型偶漏极端并发/边界条件，而高强度推理模型直接下场改码又容易写出层层判空的过度防御样板代码）；同时免去传统审查工具复杂的 API Key 配置。
 - **核心能力**：
-  - **三端本地 CLI 零配置互通**：默认启动本机 `codex`，也可通过 `--agent claude` 或 `--agent agy` 切换 Claude Code 或 Antigravity CLI，默认原样沿用各代理自身的本地模型配置。
+  - **三端本地 CLI 零配置互通 + 过程实时监控汇报**：默认启动本机 `codex`，也可通过 `--agent claude` 或 `--agent agy` 切换 Claude Code 或 Antigravity CLI，默认原样沿用各代理自身的本地模型配置；调用期间主 Agent 后台监控并随时向用户汇报被调代理的实时进度。
   - **覆盖研发全流程四类动作**：支持 `discuss`（跨代理只读讨论/起草方案）、`plan`（结构化方案审查）、`exec`（委派目标代理执行 TODO 编码，如在 Codex 中委派 `agy` 编写清爽代码）、`code`（代码改动与需求落实验收）。
   - **确定性护栏 + 反过度防御**：前置 6 门过滤自动剔除二进制、`.env` 等密钥路径、符号链接越界读取与构建噪音；后置滑动窗口精确修正漂移行号，并通过独立 `suppressed_over_defensive_notes` 分流槽拦截冗余判空和吞错兜底建议。默认 **1 轮深审 + 一次性全量修复交付**（支持按需开启最高 5 轮清零复审）。
 - **常用调用示例**：
-  - `用 codex-review 先审查当前设计方案，修订后执行 TODO 实现，最后用 Codex 验收并一次性修完所有问题。`
-  - `用 $codex-review（--agent agy）先起草并执行重构计划，再对当前工作区改动做代码漏洞审查。`
+  - `用 code-review 先审查当前设计方案，修订后执行 TODO 实现，最后用 Codex 验收并一次性修完所有问题。`
+  - `用 $code-review（--agent agy）先起草并执行重构计划，再对当前工作区改动做代码漏洞审查。`
 
 ---
 
@@ -138,7 +138,7 @@ skills/
 
 新增或修改技能后：
 1. 确保 `SKILL.md` 顶部包含合法的 YAML Frontmatter（`name`、`description`、`license`、`metadata`），且正文保持精简、将大段参考资料拆入 `references/` 按需读取。
-2. 若包含脚本与测试（如 `harness-run`、`codex-review`），在提交前运行对应的 `unittest` 套件并使用 `quick_validate.py` 核验技能格式。
+2. 若包含脚本与测试（如 `harness-run`、`code-review`），在提交前运行对应的 `unittest` 套件并使用 `quick_validate.py` 核验技能格式。
 3. 推送到 GitHub 后即可通过 `npx skills add Hopesy/skillhub --skill <skill-name>` 分发安装。
 
 ## 许可

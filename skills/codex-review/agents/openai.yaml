@@ -1,4 +1,0 @@
-interface:
-  display_name: "Codex / Claude / AGY 协同与审查"
-  short_description: "打通本地 Codex（默认）、Claude Code 与 agy CLI：支持讨论方案、1 轮深审、跨代理执行计划与一次性修复验收"
-  default_prompt: "请启用 codex-review 技能协同推进：结合本地 agy / codex / claude 各自专长完成方案讨论起草、只读深度审查（默认 Codex 1 轮）、TODO 计划执行与代码漏洞验收，检出问题一次性全部修复并实时汇报进度。"

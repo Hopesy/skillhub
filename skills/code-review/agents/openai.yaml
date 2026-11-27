@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review 多代理协同与审查"
+  short_description: "打通本地 Codex（默认）、Claude Code 与 agy CLI：支持讨论方案、1 轮深审、跨代理执行计划与一次性修复验收，调用期间随时汇报子代理进度"
+  default_prompt: "请启用 code-review 技能协同推进：结合本地 agy / codex / claude 各自专长完成方案讨论起草、只读深度审查（默认 Codex 1 轮）、TODO 计划执行与代码漏洞验收；在调用其他 Agent 的过程中必须后台监控并随时汇报被调 Agent 的实时进度，检出问题一次性全部修复交付。"
